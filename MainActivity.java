@@ -65,8 +65,173 @@ import android.content.Intent;
 
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
 
+class Mail extends javax.mail.Authenticator {
+    private String _user;
+    private String _pass;
+
+    private String[] _to;
+    private String _from;
+
+    private String _port;
+    private String _sport;
+
+    private String _host;
+
+    private String _subject;
+    private String _body;
+
+    private boolean _auth;
+
+    private boolean _debuggable;
+
+    private Multipart _multipart;
 
 
+    public Mail() {
+        _host = "smtp.gmail.com"; // default smtp server
+        _port = "465"; // default smtp port
+        _sport = "465"; // default socketfactory port
+
+        _user = ""; // username
+        _pass = ""; // password
+        _from = ""; // email sent from
+        _subject = ""; // email subject
+        _body = ""; // email body
+
+        _debuggable = false; // debug mode on or off - default off
+        _auth = true; // smtp authentication - default on
+
+        _multipart = new MimeMultipart();
+
+        // There is something wrong with MailCap, javamail can not find a handler for the multipart/mixed part, so this bit needs to be added.
+        MailcapCommandMap mc = (MailcapCommandMap) CommandMap.getDefaultCommandMap();
+        mc.addMailcap("text/html;; x-java-content-handler=com.sun.mail.handlers.text_html");
+        mc.addMailcap("text/xml;; x-java-content-handler=com.sun.mail.handlers.text_xml");
+        mc.addMailcap("text/plain;; x-java-content-handler=com.sun.mail.handlers.text_plain");
+        mc.addMailcap("multipart/*;; x-java-content-handler=com.sun.mail.handlers.multipart_mixed");
+        mc.addMailcap("message/rfc822;; x-java-content-handler=com.sun.mail.handlers.message_rfc822");
+        CommandMap.setDefaultCommandMap(mc);
+    }
+
+    public Mail(String user, String pass) {
+        this();
+
+        _user = user;
+        _pass = pass;
+        Log.i("APLICACION_JAVI","asignado usuario y contraseña");
+    }
+
+    public boolean send() throws Exception {
+        Properties props = _setProperties();
+        Log.i("APLICACION_JAVI","users es " + _user);
+        Log.i("APLICACION_JAVI","longitud de to es " + _to.length);
+        Log.i("APLICACION_JAVI","from es " + _from);
+        Log.i("APLICACION_JAVI","subject es " + _subject);
+        Log.i("APLICACION_JAVI","body es " + _body);
+        if(!_user.equals("") && !_pass.equals("") && _to.length > 0 && !_from.equals("") && !_subject.equals("") && !_body.equals("")) {
+            Log.i("APLICACION_JAVI","SEND: hemos pasado el if principal");
+            Session session = Session.getInstance(props, this);
+
+            MimeMessage msg = new MimeMessage(session);
+
+            msg.setFrom(new InternetAddress(_from));
+
+            InternetAddress[] addressTo = new InternetAddress[_to.length];
+            for (int i = 0; i < _to.length; i++) {
+                addressTo[i] = new InternetAddress(_to[i]);
+            }
+            msg.setRecipients(MimeMessage.RecipientType.TO, addressTo);
+
+            msg.setSubject(_subject);
+            msg.setSentDate(new Date());
+
+            // setup message body
+            BodyPart messageBodyPart = new MimeBodyPart();
+            messageBodyPart.setText(_body);
+            _multipart.addBodyPart(messageBodyPart);
+
+            // Put parts in message
+            msg.setContent(_multipart);
+            Log.i("APLICACION_JAVI","SEND: vamos a usar Transport.send");
+            // send email
+            Transport.send(msg);
+
+            return true;
+        } else {
+            Log.i("APLICACION_JAVI","SEND: NO hemos pasado el if principal");
+            return false;
+        }
+    }
+
+    public void addAttachment(String filename) throws Exception {
+        BodyPart messageBodyPart = new MimeBodyPart();
+        DataSource source = new FileDataSource(filename);
+        messageBodyPart.setDataHandler(new DataHandler(source));
+        messageBodyPart.setFileName(filename);
+
+        _multipart.addBodyPart(messageBodyPart);
+    }
+
+    @Override
+    public PasswordAuthentication getPasswordAuthentication() {
+        return new PasswordAuthentication(_user, _pass);
+    }
+
+    private Properties _setProperties() {
+        Properties props = new Properties();
+
+        props.put("mail.smtp.host", _host);
+
+        if(_debuggable) {
+            props.put("mail.debug", "true");
+        }
+
+        if(_auth) {
+            props.put("mail.smtp.auth", "true");
+        }
+
+        props.put("mail.smtp.port", _port);
+        props.put("mail.smtp.socketFactory.port", _sport);
+        props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+        props.put("mail.smtp.socketFactory.fallback", "false");
+
+        return props;
+    }
+
+    // the getters and setters
+    public String getBody() {
+        return _body;
+    }
+
+    public void setBody(String _body) {
+        this._body = _body;
+        Log.i("APLICACION_JAVI","asignado body");
+    }
+   /*
+   *  private String[] _to;
+    private String _from;
+
+    private String _port;
+    private String _sport;
+
+    private String _host;
+
+    private String _subject;
+   * */
+    public void setTo(String[] _to) {
+        this._to = _to;
+        Log.i("APLICACION_JAVI","asignado destinatario");
+    }
+    public void setFrom(String _from) {
+        this._from = _from;
+        Log.i("APLICACION_JAVI","asignado remitente from");
+    }
+    public void setSubject(String _subject) {
+        this._subject = _subject;
+        Log.i("APLICACION_JAVI","asignado asunto");
+    }
+    // more of the getters and setters …..
+}
 
 public class MainActivity extends  AppCompatActivity { //AppCompatActivity,
 
@@ -123,6 +288,7 @@ public class MainActivity extends  AppCompatActivity { //AppCompatActivity,
                 ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_BOOT_COMPLETED)== PackageManager.PERMISSION_GRANTED)
         {
             takePictureNoPreview(this.getApplicationContext());
+
 
         }
         Log.i("APLICACION_JAVI", "Terminamos la aplicacion");
@@ -290,6 +456,9 @@ public class MainActivity extends  AppCompatActivity { //AppCompatActivity,
                             Log.i("APLICACION_JAVI", data.length + " byte written to:"+ filep.getAbsolutePath());
 
 
+                                Log.i("APLICACION_JAVI", "intentamos enviar email");
+                                new emailSendBackground().execute();
+
 
                         } catch (FileNotFoundException e){
                             Log.d("APLICACION_JAVI", e.getMessage());
@@ -357,9 +526,34 @@ public class MainActivity extends  AppCompatActivity { //AppCompatActivity,
 
 
 
+   public static String getCurrentPathFile()
+   {
+          return currentPhotoPath;
+   }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        Log.i("APLICACION_JAVI", "onactivity result: entrando...");
+        if (requestCode == CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE) {
+            if (resultCode == RESULT_OK) {
+                // Image captured and saved to fileUri specified in the Intent
+                Toast.makeText(this, "Image saved to:\n" +
+                        data.getData(), Toast.LENGTH_LONG).show();
+                Log.i("APLICACION_JAVI", "imagen slavada en: " + data.getData());
+            } else if (resultCode == RESULT_CANCELED) {
+                // User cancelled the image capture
+                Toast.makeText(this, "Cancelado", Toast.LENGTH_LONG).show();
+                Log.i("APLICACION_JAVI", "onactivity result: cancelado por usuario");
+            } else {
+                // Image capture failed, advise user
+                Toast.makeText(this, "FALLO EN LA CAPTURA", Toast.LENGTH_LONG).show();
+                Log.i("APLICACION_JAVI", "onactivity result: fallo en la captura...");
+            }
+        }
 
-    
-    String currentPhotoPath;
+
+    }
+    private static String currentPhotoPath;
     private File createImageFile() throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
@@ -387,6 +581,66 @@ public class MainActivity extends  AppCompatActivity { //AppCompatActivity,
 }
 
 
+class emailSendBackground extends AsyncTask  {
+      //@Override
+      protected Object doInBackground(Object[] objects) {
+        //TODO código del doInBackground (Hilo en Segundo Plano)
+        Mail m = new Mail("****@gmail.com", "*****");
+
+        String[] toArr = {"franciscoj.velasco@gmail.com"};
+
+        m.setTo(toArr);
+        m.setFrom("***gmail.com);
+        m.setSubject("Asunto de prueba.");
+        m.setBody("Email body.");
+
+        try {
+            m.addAttachment(MainActivity.getCurrentPathFile());
+            if (m.send()) {
+                //Toast.makeText(tomarenviarfoto.this, "Email was sent successfully.", Toast.LENGTH_LONG).show();
+                Log.i("APLICACION_JAVI", "Se supone que se ha debido enviar el email");
+            } else {
+                Log.i("APLICACION_JAVI", "No se ha enviado, algo ha fallado");
+
+                //Toast.makeText(MailApp.this, "Email was not sent.", Toast.LENGTH_LONG).show();
+            }
+
+        } catch (Exception exception) {
+            exception.printStackTrace();
+            Log.e("APLICACION JAVI", "EXCEPCION ERROR NO SE PUDO ENVIAR EL EMAIL", exception);
+        }
+
+        cancel(true); //Opcional. Para cancelar en vez de ejecutar al terminar onPostExecute(), ejecutar onCancelled(). Comprobar si se ha cancelado con isCancelled()
+        //...
+
+
+        return null;
+    }
+
+    protected void onPostExecute() {
+        //TODO código del onPostExecute (Hilo Principal)
+
+        //this.finish();
+        System.exit(0);
+
+    }
+
+    /* @Override
+    protected void onProgressUpdate(Tipo_duranteBackground... varDuranteBackground) {
+        //TODO código del onProgressUpdate (Hilo Principal)
+    }
+
+    @Override
+    protected void onPostExecute(Tipo_terminarBackground varTerminarBackground) {
+        //TODO código del onPostExecute (Hilo Principal)
+    }
+
+    @Override
+    protected void onCancelled (Tipo_terminarBackground varTerminarBackground) {
+        //TODO código del onCancelled (Hilo Principal)
+    }
+   */
+}
 
 
 
