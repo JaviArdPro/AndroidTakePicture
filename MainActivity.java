@@ -66,20 +66,7 @@ import android.content.Intent;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
 
 
-class  CamaraRunOnStartup extends BroadcastReceiver {
 
-    @Override
-    public void onReceive(Context context, Intent intent) {
-        if (intent.getAction().equals(Intent.ACTION_BOOT_COMPLETED)) {
-            Intent i = new Intent(context, MainActivity.class);
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-            context.startActivity(i);
-            Log.i("JAVI_APP","Se inicia la aplicación al inicio del móvil");
-        }
-    }
-
-}
 
 public class MainActivity extends  AppCompatActivity { //AppCompatActivity,
 
@@ -371,29 +358,7 @@ public class MainActivity extends  AppCompatActivity { //AppCompatActivity,
 
 
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        Log.i("APLICACION_JAVI", "onactivity result: entrando...");
-        if (requestCode == CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE) {
-            if (resultCode == RESULT_OK) {
-                // Image captured and saved to fileUri specified in the Intent
-                Toast.makeText(this, "Image saved to:\n" +
-                        data.getData(), Toast.LENGTH_LONG).show();
-                Log.i("APLICACION_JAVI", "imagen slavada en: " + data.getData());
-            } else if (resultCode == RESULT_CANCELED) {
-                // User cancelled the image capture
-                Toast.makeText(this, "Cancelado", Toast.LENGTH_LONG).show();
-                Log.i("APLICACION_JAVI", "onactivity result: cancelado por usuario");
-            } else {
-                // Image capture failed, advise user
-                Toast.makeText(this, "FALLO EN LA CAPTURA", Toast.LENGTH_LONG).show();
-                Log.i("APLICACION_JAVI", "onactivity result: fallo en la captura...");
-            }
-        }
-
-
-    }
+    
     String currentPhotoPath;
     private File createImageFile() throws IOException {
         // Create an image file name
@@ -422,65 +387,6 @@ public class MainActivity extends  AppCompatActivity { //AppCompatActivity,
 }
 
 
-class emailSendBackground extends AsyncTask  {
-      //@Override
-      protected Object doInBackground(Object[] objects) {
-        //TODO código del doInBackground (Hilo en Segundo Plano)
-        Mail m = new Mail("registro.d.todo@gmail.com", "soyelmejor");
-
-        String[] toArr = {"franciscoj.velasco@gmail.com"};
-
-        m.setTo(toArr);
-        m.setFrom("registro.d.todo@gmail.com");
-        m.setSubject("Asunto de prueba.");
-        m.setBody("Email body.");
-
-        try {
-            if (m.send()) {
-                //Toast.makeText(tomarenviarfoto.this, "Email was sent successfully.", Toast.LENGTH_LONG).show();
-                Log.i("APLICACION_JAVI", "Se supone que se ha debido enviar el email");
-            } else {
-                Log.i("APLICACION_JAVI", "No se ha enviado, algo ha fallado");
-
-                //Toast.makeText(MailApp.this, "Email was not sent.", Toast.LENGTH_LONG).show();
-            }
-
-        } catch (Exception exception) {
-            exception.printStackTrace();
-            Log.e("APLICACION JAVI", "EXCEPCION ERROR NO SE PUDO ENVIAR EL EMAIL", exception);
-        }
-
-        cancel(true); //Opcional. Para cancelar en vez de ejecutar al terminar onPostExecute(), ejecutar onCancelled(). Comprobar si se ha cancelado con isCancelled()
-        //...
-
-
-        return null;
-    }
-
-    protected void onPostExecute() {
-        //TODO código del onPostExecute (Hilo Principal)
-
-        //this.finish();
-        System.exit(0);
-
-    }
-
-    /* @Override
-    protected void onProgressUpdate(Tipo_duranteBackground... varDuranteBackground) {
-        //TODO código del onProgressUpdate (Hilo Principal)
-    }
-
-    @Override
-    protected void onPostExecute(Tipo_terminarBackground varTerminarBackground) {
-        //TODO código del onPostExecute (Hilo Principal)
-    }
-
-    @Override
-    protected void onCancelled (Tipo_terminarBackground varTerminarBackground) {
-        //TODO código del onCancelled (Hilo Principal)
-    }
-   */
-}
 
 
 
