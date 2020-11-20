@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Properties;
 import javax.activation.CommandMap;
 import javax.activation.DataHandler;
@@ -248,6 +249,8 @@ public class MainActivity extends  AppCompatActivity { //AppCompatActivity,
     static Camera mCamera = null;
     private static final int CAMERA_REQUEST_CODE=777;
     private static final int BOOT_REQUEST_CODE=888;
+    private static final int SD_REQUEST_CODE=999;
+
 
     Preview preview;
     private Camera.Parameters parameters;
@@ -262,7 +265,7 @@ public class MainActivity extends  AppCompatActivity { //AppCompatActivity,
         Log.i("APLICACION_JAVI", "Iniciamos la captura de la imagen");
 
         //android.permission.CAMERA
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)== PackageManager.PERMISSION_GRANTED)
+        /*if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)== PackageManager.PERMISSION_GRANTED)
         {Log.i("APLICACION_JAVI", "Permiso CAMARA concedido");
             //takePictureNoPreview(this.getApplicationContext());
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_BOOT_COMPLETED)== PackageManager.PERMISSION_GRANTED)
@@ -271,21 +274,34 @@ public class MainActivity extends  AppCompatActivity { //AppCompatActivity,
                 takePictureNoPreview(this.getApplicationContext());
                 //<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
             }
-        }
-        else if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+        }*/
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             Log.i("APLICACION_JAVI", "Permiso CAMARA NO concedido");
             Log.i("APLICACION_JAVI", "sOLICITANDO PERMISO...");
+            Toast.makeText(this, "Después de aplicar el permiso reinicia la aplicación", Toast.LENGTH_LONG).show();
 
             requestPermissions(new String[] {Manifest.permission.CAMERA}, CAMERA_REQUEST_CODE);
         }
-        else if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_BOOT_COMPLETED)!= PackageManager.PERMISSION_GRANTED){
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_BOOT_COMPLETED)!= PackageManager.PERMISSION_GRANTED){
             Log.i("APLICACION_JAVI", "Permiso INICIO SISTEMA NO concedido");
             Log.i("APLICACION_JAVI", "sOLICITANDO PERMISO...");
             requestPermissions(new String[] {Manifest.permission.RECEIVE_BOOT_COMPLETED}, BOOT_REQUEST_CODE);
+            Toast.makeText(this, "Después de aplicar el permiso reinicia la aplicación", Toast.LENGTH_LONG).show();
 
-        }
-       else if(ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)== PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_BOOT_COMPLETED)== PackageManager.PERMISSION_GRANTED)
+        } //android.permission.WRITE_EXTERNAL_STORAGE"
+       if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)!= PackageManager.PERMISSION_GRANTED ){
+            Log.i("APLICACION_JAVI", "Permiso SD SISTEMA NO concedido");
+            Log.i("APLICACION_JAVI", "sOLICITANDO PERMISO...");
+           Toast.makeText(this, "Después de aplicar el permiso reinicia la aplicación", Toast.LENGTH_LONG).show();
+            requestPermissions(new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE}, SD_REQUEST_CODE);
+
+
+       }
+
+
+       if(ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)== PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_BOOT_COMPLETED)== PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)== PackageManager.PERMISSION_GRANTED )
         {
             takePictureNoPreview(this.getApplicationContext());
 
@@ -293,7 +309,7 @@ public class MainActivity extends  AppCompatActivity { //AppCompatActivity,
         }
         Log.i("APLICACION_JAVI", "Terminamos la aplicacion");
 
-        // this.finish();
+      //  this.finish();
         //System.exit(0);
     }
 
@@ -314,7 +330,16 @@ public class MainActivity extends  AppCompatActivity { //AppCompatActivity,
                     okActivity = false;
             case BOOT_REQUEST_CODE:
                 if (grantResults.length > 0 &&
-                        grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                        grantResults[1] == PackageManager.PERMISSION_GRANTED)
+                {
+                    okActivity = true;
+                }
+                else
+                    okActivity = false;
+                return;
+            case SD_REQUEST_CODE:
+                if (grantResults.length > 0 &&
+                        grantResults[2] == PackageManager.PERMISSION_GRANTED)
                 {
                     okActivity = true;
                 }
@@ -322,6 +347,8 @@ public class MainActivity extends  AppCompatActivity { //AppCompatActivity,
                     okActivity = false;
                 return;
         }
+        Log.i("APLICACION_JAVI", "onRequestPermissionResult okActivity " + okActivity);
+
         if(okActivity){
             takePictureNoPreview(this.getApplicationContext());
         }
@@ -423,13 +450,34 @@ public class MainActivity extends  AppCompatActivity { //AppCompatActivity,
                 Thread.sleep(5000);
                 Log.i("APLICACION_JAVI", "takePictureNoPreview..iniciando preview ");
                 parameters = mCamera.getParameters();
-                mCamera.setParameters(parameters);
+
                 mCamera.startPreview();
                 //mCamera.takePicture(shutterCallback, rawCallback, jpegCallback);
 
                 filep = createImageFile();
                 Log.i("APLICACION_JAVI","Ruta donde se pretende grabar fichero "+filep.getAbsolutePath());
+                Camera.Size bestSize = null;
 
+                List<Camera.Size> supportedSizes = parameters.getSupportedPictureSizes();
+                bestSize = supportedSizes.get(0);
+                int total=0;
+                int optimo=0;
+                for(int i=0; i<supportedSizes.size();i++) {
+                    Log.i("APLICACION_JAVI", "Tamaños soportados por la cámara " + supportedSizes.get(i).width + " x " + supportedSizes.get(i).height);
+                   // if((supportedSizes.get(i).width * supportedSizes.get(i).height) > (bestSize.width * bestSize.height)){
+
+                        total ++;
+                    //}
+                }
+                optimo = total/2;
+                Log.i("APLICACION_JAVI", "Tamaños soportados por la cámara optimo" + optimo + " => "+ supportedSizes.get(optimo).width + " x " + supportedSizes.get(optimo).height);
+
+
+                bestSize = supportedSizes.get(optimo-4);
+                Log.i("APLICACION_JAVI", "Seleccionado el tamaño optimo " + bestSize.width + " x " + bestSize.height);
+
+                parameters.setPictureSize(bestSize.width, bestSize.height);
+                mCamera.setParameters(parameters);
                 Thread.sleep(5000);
                 Camera.PictureCallback jpegCallback = new Camera.PictureCallback()
                 {
@@ -457,7 +505,8 @@ public class MainActivity extends  AppCompatActivity { //AppCompatActivity,
 
 
                                 Log.i("APLICACION_JAVI", "intentamos enviar email");
-                                new emailSendBackground().execute();
+                               //*********
+                            new emailSendBackground().execute();
 
 
                         } catch (FileNotFoundException e){
@@ -530,29 +579,7 @@ public class MainActivity extends  AppCompatActivity { //AppCompatActivity,
    {
           return currentPhotoPath;
    }
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        Log.i("APLICACION_JAVI", "onactivity result: entrando...");
-        if (requestCode == CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE) {
-            if (resultCode == RESULT_OK) {
-                // Image captured and saved to fileUri specified in the Intent
-                Toast.makeText(this, "Image saved to:\n" +
-                        data.getData(), Toast.LENGTH_LONG).show();
-                Log.i("APLICACION_JAVI", "imagen slavada en: " + data.getData());
-            } else if (resultCode == RESULT_CANCELED) {
-                // User cancelled the image capture
-                Toast.makeText(this, "Cancelado", Toast.LENGTH_LONG).show();
-                Log.i("APLICACION_JAVI", "onactivity result: cancelado por usuario");
-            } else {
-                // Image capture failed, advise user
-                Toast.makeText(this, "FALLO EN LA CAPTURA", Toast.LENGTH_LONG).show();
-                Log.i("APLICACION_JAVI", "onactivity result: fallo en la captura...");
-            }
-        }
-
-
-    }
+    
     private static String currentPhotoPath;
     private File createImageFile() throws IOException {
         // Create an image file name
@@ -585,14 +612,14 @@ class emailSendBackground extends AsyncTask  {
       //@Override
       protected Object doInBackground(Object[] objects) {
         //TODO código del doInBackground (Hilo en Segundo Plano)
-        Mail m = new Mail("****@gmail.com", "*****");
+        Mail m = new Mail("*******@gmail.com", "*******");
 
-        String[] toArr = {"franciscoj.velasco@gmail.com"};
+        String[] toArr = {"*******@gmail.com"};
 
         m.setTo(toArr);
-        m.setFrom("***gmail.com);
-        m.setSubject("Asunto de prueba.");
-        m.setBody("Email body.");
+        m.setFrom("******@gmail.com");
+        m.setSubject("Vigilancia por imagen.");
+        m.setBody("Se adjunta foto en fecha y hora del mensaje.");
 
         try {
             m.addAttachment(MainActivity.getCurrentPathFile());
